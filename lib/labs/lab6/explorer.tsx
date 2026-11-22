@@ -546,7 +546,7 @@ export function SamplingExplorer({
       )}
       <div className="fmx-readout" aria-live="polite">
         <span>
-          {cursor === null ? "Sampling instants" : `At t = ${time(cursor)}`}
+          {cursor === null ? "Sampling instants" : <b className="nc">At t = {time(cursor)}</b>}
         </span>
         {cursor === null ? (
           <strong>

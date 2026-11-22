@@ -50,6 +50,7 @@ export const EMONA_KNOBS: KnobDef[] = [
 
 export const EMONA_SLIDES: SlideDef[] = [
   { id: "vco.range", label: "VCO range", x: 307.5, y: 1162.5, positions: ["HI", "LO"], initial: 1 },
+  { id: "pcmenc.mode", label: "PCM ENCODER mode", x: 651.5, y: 936, positions: ["PCM", "TDM"], initial: 0 },
 ];
 
 const KNOB_DEFAULTS: Record<string, number> = Object.fromEntries(EMONA_KNOBS.map((k) => [k.id, k.initial]));
@@ -59,7 +60,7 @@ export function knobValue(c: EmonaControls, id: string): number {
   return c.knobs[id] ?? KNOB_DEFAULTS[id] ?? 0.5;
 }
 
-/** Logical switch value. For "vco.range": 1 = HI, 0 = LO. */
+/** Logical switch value. For "vco.range": 1 = HI, 0 = LO. For "pcmenc.mode": 0 = PCM, 1 = TDM. */
 export function switchValue(c: EmonaControls, id: string): number {
   const pos = c.switches[id] ?? SWITCH_DEFAULTS[id] ?? 0;
   if (id === "vco.range") return pos === 0 ? 1 : 0;

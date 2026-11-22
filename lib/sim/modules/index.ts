@@ -428,42 +428,62 @@ const analogSwitch: ModuleModel = {
 };
 
 /**
- * PCM ENCODER (PCM mode): INPUT 1 is sampled once per frame and sent as an
- * 8-bit offset-binary word, MSB first, one bit per clock. -2 V → 00000000,
- * +2 V → 11111111. FS is high while bit 0 is on the line.
+ * PCM ENCODER. One bit per CLK period, MSB first (Figure 1 of the Experiment 7
+ * lab sheet), so the sampling rate is the clock frequency / bits per frame.
+ * Quantization: 8-bit offset binary over ±2 V, -2 V → 00000000,
+ * +2 V → 11111111 (endpoints exact, 255 equal steps of 15.7 mV); inputs
+ * beyond ±2 V are clipped. FS is high while the frame's last bit (bit 0) is
+ * on the line.
+ * PCM mode: an 8-bit frame carrying INPUT 1.
+ * TDM mode, assumption: a 16-bit frame of two 8-bit slots, INPUT 1 then
+ * INPUT 2, each sampled at the start of its own slot, with FS on the frame's
+ * last bit. The frame layout is not in the documents available; it agrees
+ * with the lab report's photos (3 decoded steps per 2 kHz cycle at a 100 kHz
+ * clock in TDM mode, against 6 in PCM mode).
  */
+export const PCM_FULL_SCALE = 2;
+export const pcmCode = (v: number) => Math.round(((Math.max(-PCM_FULL_SCALE, Math.min(PCM_FULL_SCALE, v)) + PCM_FULL_SCALE) / (2 * PCM_FULL_SCALE)) * 255);
+export const pcmLevel = (code: number) => (code / 255) * 2 * PCM_FULL_SCALE - PCM_FULL_SCALE;
+export const pcmFrameBits = (c: EmonaControls) => (switchValue(c, "pcmenc.mode") === 1 ? 16 : 8);
+
 const pcmEncoder: ModuleModel = {
   id: "pcmenc",
   inputs: ["pcmenc.in1", "pcmenc.in2", "pcmenc.clk"],
   outputs: ["pcmenc.fs", "pcmenc.data"],
   settle: () => 2.5e-3,
-  create: () => {
+  create: ({ controls }) => {
+    const bits = pcmFrameBits(controls);
     let last = false;
-    let bit = 7;
-    let word = 128;
+    let k = bits - 1; // bit position within the frame, counting down to 0
+    let word1 = 128;
+    let word2 = 128;
     let started = false;
     return (inp, out) => {
       const clk = inp[2] > HIGH;
       if (clk && !last) {
-        if (!started || bit === 0) {
-          const v = Math.max(-2, Math.min(2, inp[0]));
-          word = Math.round(((v + 2) / 4) * 255);
-          bit = 7;
+        if (!started || k === 0) {
+          k = bits - 1;
+          word1 = pcmCode(inp[0]);
           started = true;
-        } else bit -= 1;
+        } else k -= 1;
+        if (bits === 16 && k === 7) word2 = pcmCode(inp[1]);
       }
       last = clk;
-      out[0] = started && bit === 0 ? TTL : 0;
-      out[1] = started && (word >> bit) & 1 ? TTL : 0;
+      const bit = bits === 16 ? (k >= 8 ? (word1 >> (k - 8)) & 1 : (word2 >> k) & 1) : (word1 >> k) & 1;
+      out[0] = started && k === 0 ? TTL : 0;
+      out[1] = started && bit ? TTL : 0;
     };
   },
 };
 
 /**
- * PCM DECODER: shifts PCM DATA in on its clock, and when FS marks bit 0 it
- * converts the completed word to a voltage (00000000 → -2 V, 11111111 → +2 V)
- * and holds it until the next frame.
+ * PCM DECODER: shifts PCM DATA in on its clock, and when FS marks the last
+ * bit of a frame converts the completed word to a voltage (00000000 → -2 V,
+ * 11111111 → +2 V) and holds it until the next frame: a PAM signal.
  * Assumption: data is read on the falling clock edge (mid-bit).
+ * Assumption: the decoder tells a TDM frame from the number of bits between
+ * FS pulses (its panel has a TDM indicator); with 16 it puts the first slot
+ * on OUTPUT and the second on OUTPUT2.
  */
 const pcmDecoder: ModuleModel = {
   id: "pcmdec",
@@ -473,16 +493,28 @@ const pcmDecoder: ModuleModel = {
   create: () => {
     let last = false;
     let shift = 0;
+    let count = 0;
     let held = 0;
+    let held2 = 0;
     return (inp, out) => {
       const clk = inp[2] > HIGH;
       if (!clk && last) {
-        shift = ((shift << 1) | (inp[1] > HIGH ? 1 : 0)) & 0xff;
-        if (inp[0] > HIGH) held = (shift / 255) * 4 - 2;
+        shift = ((shift << 1) | (inp[1] > HIGH ? 1 : 0)) & 0xffff;
+        count++;
+        if (inp[0] > HIGH) {
+          if (count === 16) {
+            held = pcmLevel(shift >> 8);
+            held2 = pcmLevel(shift & 0xff);
+          } else {
+            held = pcmLevel(shift & 0xff);
+            held2 = 0;
+          }
+          count = 0;
+        }
       }
       last = clk;
       out[0] = held;
-      out[1] = 0;
+      out[1] = held2;
     };
   },
 };

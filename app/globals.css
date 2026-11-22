@@ -2062,3 +2062,48 @@ body {
   font-weight: 650;
   text-align: left;
 }
+
+/* Lab 7 PCM explorer */
+.pcx-frame {
+  fill: rgba(43, 125, 224, 0.08);
+}
+.pcx-slot2,
+.pcx-slotB {
+  fill: rgba(224, 134, 0, 0.14);
+}
+.pcx-slotA {
+  fill: rgba(43, 125, 224, 0.12);
+}
+.pcx-cell {
+  fill: rgba(24, 24, 28, 0.03);
+}
+.pcx-cell-alt {
+  fill: rgba(24, 24, 28, 0.07);
+}
+.pcx-read {
+  fill: rgba(43, 125, 224, 0.18);
+}
+.g-svg .pcx-bit {
+  font-size: 11px;
+  fill: var(--ink);
+}
+.pcx-bits {
+  margin-top: 6px;
+  background: #fff;
+  border-radius: 6px;
+}
+.pcx-readout em + em {
+  margin-top: 2px;
+}
+.pcx-wide {
+  grid-column: span 2;
+}
+.pcx-word {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.12em;
+}
+.fmx-readout span .nc {
+  font-weight: inherit;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}

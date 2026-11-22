@@ -11,6 +11,7 @@ const LOADERS: Record<number, () => Promise<{ default: Guide }>> = {
   4: () => import("./lab4/guide"),
   5: () => import("./lab5/guide"),
   6: () => import("./lab6/guide"),
+  7: () => import("./lab7/guide"),
 };
 
 export const hasGuide = (labId: number) => labId in LOADERS;
