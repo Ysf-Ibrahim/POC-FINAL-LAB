@@ -114,19 +114,36 @@ export function setViewport(w: number, h: number) {
   scene.viewport = { w, h };
 }
 
-export function fitView(): View {
-  const b = devicesBounds();
+/** Extra space kept free by a docked panel (the lab guide), in screen px. */
+const reserved = { right: 0, bottom: 0 };
+export function setReservedSpace(space: { right?: number; bottom?: number }) {
+  reserved.right = space.right ?? 0;
+  reserved.bottom = space.bottom ?? 0;
+}
+
+/** The part of the stage that is free of chrome, in screen px. */
+export function freeArea() {
   const { w, h } = scene.viewport;
-  const availW = Math.max(200, w - INSET.left - INSET.right);
-  const availH = Math.max(200, h - INSET.top - INSET.bottom);
-  const bw = b.maxX - b.minX;
-  const bh = b.maxY - b.minY;
-  const k = clamp(Math.min(availW / bw, availH / bh), MIN_ZOOM, 1.6);
+  const width = Math.max(200, w - INSET.left - INSET.right - reserved.right);
+  const height = Math.max(200, h - INSET.top - INSET.bottom - reserved.bottom);
+  return { x: INSET.left, y: INSET.top, w: width, h: height };
+}
+
+/** View that frames a world rectangle inside the free area. */
+export function frameView(b: { minX: number; minY: number; maxX: number; maxY: number }, maxZoom = 1.6): View {
+  const area = freeArea();
+  const bw = Math.max(1, b.maxX - b.minX);
+  const bh = Math.max(1, b.maxY - b.minY);
+  const k = clamp(Math.min(area.w / bw, area.h / bh), MIN_ZOOM, maxZoom);
   return {
     k,
-    x: INSET.left + (availW - bw * k) / 2 - b.minX * k,
-    y: INSET.top + (availH - bh * k) / 2 - b.minY * k,
+    x: area.x + (area.w - bw * k) / 2 - b.minX * k,
+    y: area.y + (area.h - bh * k) / 2 - b.minY * k,
   };
+}
+
+export function fitView(): View {
+  return frameView(devicesBounds());
 }
 
 export function restoreLayout(pos: Partial<Record<DeviceId, Point>>) {

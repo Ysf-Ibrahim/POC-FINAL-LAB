@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { EmonaTrainer } from "@/components/equipment/EmonaTrainer";
 import { PromaxOscilloscope } from "@/components/equipment/PromaxOscilloscope";
+import { GuideHighlights } from "@/components/guide/GuideHighlights";
 import { CableLayer } from "@/components/wiring/CableLayer";
 import { WireToolbar } from "@/components/wiring/WireToolbar";
 import { connectionNote, portTitle } from "@/lib/cables/feedback";
@@ -378,6 +379,7 @@ export function LabWorkspace() {
             <EmonaTrainer />
           </MovableEquipment>
           <CableLayer />
+          <GuideHighlights />
         </div>
       </div>
       <WireToolbar />

@@ -6,3 +6,7 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# course material and personal lab reports: reference only, not for publication
+/*.pdf
+/*.docx

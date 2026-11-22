@@ -2,7 +2,7 @@
 
 An interactive bench for the Principles of Communication laboratory: the **EMONA Telecoms-Trainer 101** (black BiSKIT board) and the **PROMAX OD-402B** 20 MHz oscilloscope. Patch the trainer with leads, connect it to the oscilloscope, and the CRT shows the signal.
 
-This is Phase 1: the shared bench (instruments, wiring, navigation, signal engine). The individual labs are routes that reuse the same bench; their content is not written yet.
+Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)** has a full guideline: theory, the practical steps with live checks, and an oral-exam question bank. Labs 3–7 are routes without a guideline yet.
 
 ## Run it
 
@@ -63,19 +63,50 @@ components/
   equipment/             EmonaTrainer, PromaxOscilloscope, ScopeScreen (CRT canvas), control parts
   wiring/                cable rendering (SVG) and the wire toolbar
   nav/                   lab menu
+  guide/                 lab guideline: panel, marks on the bench, question bank, content building blocks
 lib/
   ports/                 port registry: every socket, by id, in image-normalised coordinates
   cables/                lead state, undo history, cable geometry
   controls/              front-panel state of both instruments (pure data)
   sim/                   signal engine, module models, oscilloscope acquisition
   workspace/             live scene geometry, motion, instrument definitions
-  labs/                  lab configurations (number and title for now)
+  guide/                 guide types, bench inspection (nets and measured voltages), guide state
+  labs/                  lab list; one folder per lab with a guideline (lab2/: steps, figures, questions)
 public/equipment/        the two instrument photographs (WebP)
 ```
 
-The visual layer and the signal layer are separate: `lib/sim` knows nothing about rendering and the components know nothing about how a module behaves. A future lab adds data to `lib/labs` and refers to sockets by id (for example `master.sine2k`, `scope.ch1`).
+The visual layer and the signal layer are separate: `lib/sim` knows nothing about rendering and the components know nothing about how a module behaves. A lab guideline is data in `lib/labs/<lab>` and refers to sockets by id (for example `master.sine2k`, `scope.ch1`).
 
 Dragging, zooming and cable routing write CSS transforms and SVG attributes directly; React re-renders only when leads or settings change.
+
+## Lab guidelines
+
+Opening a lab shows the normal bench and a small card with **Start guideline**. Nothing starts by itself.
+
+- **Theory first.** The guideline opens with short explanation screens, then moves to the bench.
+- **Manual work only.** Each practical step marks the sockets to join (a ring on each, a dotted hint between them) or the knobs and switches to adjust. The guide never plugs a lead or turns a control.
+- **Live status, no gating.** A step shows whether its requirement is met, with the value it measured, but Next is always available and never pressed for you.
+- **Why?** Every step carries a fuller explanation behind a disclosure.
+- **Oral questions** sit with the part they belong to, and the last screen is the complete question bank with a Test yourself mode.
+- **Resume.** The step reached is remembered per lab in local storage. Leaving the lab closes the guide; the wiring stays.
+
+### How a step is checked
+
+Checks never look at the step number or at which button was pressed. `lib/guide/bench.ts` reads the same leads, controls and module models as the oscilloscope:
+
+- *Connections* are tested electrically (same net), so any equivalent wiring counts: either GND socket, a lead chained through another socket, X and Y swapped on the multiplier.
+- *Levels* are measured by running the circuit: for Lab 2 the DC level and peak-to-peak value at the Adder output, and P, Q and the modulation index from the waveform at the Multiplier output. Remove the carrier lead and the AM check fails, because there is no AM signal.
+
+### Lab 2 sources
+
+The sequence, connections and values (2 kHz 4 Vp-p message, 100 kHz 4 Vp-p carrier, AM = (message + DC) × carrier) follow the Experiment 2 lab sheet. Every oral question carries a label saying where it comes from: reported by students as asked, taken from notes of the instructor's lab explanations, from the lab sheet, or predicted. Predicted questions are never presented as having been asked.
+
+Where the trainer differs from the simple theory, the guide says so: the Adder inverts; VDC reaches only ±2.5 V, so 4 V of DC needs the Adder's g gain; the "2 kHz" output is 2.083 kHz. The multiplier is modelled with k = 1 and no output clipping (see Assumptions), so voltages at its output may be larger than on a real board; the modulation index, which is a ratio, is not affected.
+
+### Adding a guideline for another lab
+
+1. Create `lib/labs/labN/guide.tsx` exporting a `Guide` (see `lib/guide/types.ts`): sections of steps, each with a body, an optional `why`, `highlight` (sockets and controls by id/name), `checks` (functions of the `Bench`) and question ids.
+2. Register it in `lib/labs/guides.ts`. It is loaded on demand, so it costs other pages nothing.
 
 ## Equipment photographs
 
@@ -156,4 +187,5 @@ These are not confirmed by the documents available and are marked `Assumption` i
 - **Trainer modules with no signal yet** (sockets can be patched, the output stays at 0 V): PHASE SHIFTER, SEQUENCE GENERATOR, DIVIDER, SERIAL TO PARALLEL, SPEECH. The reason for each is in `UNSIMULATED_MODULES`. PCM ENCODER TDM mode and PCM DECODER OUTPUT2 are also not modelled.
 - **Oscilloscope**: X-Y mode (its switch position is hidden in the photograph), TV-V / TV-H triggering, the VOLTS/DIV VARIABLE knobs (fixed at CAL), TRACE ROTATION, bandwidth limiting.
 - **Indicators on the range switches**: the white pointers on VOLTS/DIV and TIME/DIV and the index lines on the small knobs are drawn by the app so the settings can be read; the photograph underneath shows the knobs as they were when it was taken.
-- **Labs 2–7**: navigation only.
+- **Labs 3–7**: navigation only; no guideline yet.
+- **Lab 2 guideline**: the MATLAB part of the lab sheet (question 5) is explained but not run; there is no spectrum analyser on the bench, so the sidebands are shown as illustrations, not measured.

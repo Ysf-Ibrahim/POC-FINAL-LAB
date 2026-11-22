@@ -122,7 +122,7 @@ export function KnobSlider({ anchor, label, value, max, stepped, format, onInput
       if (!box || overlap(box, keepClear) > 0) {
         const screen = document.querySelector(".scope-screen");
         const devices = [...document.querySelectorAll(".equipment")].map(boxOf);
-        const chrome = [...document.querySelectorAll(".toolbar, .viewbar, .menu-button, .readout, .lab-note")].map(boxOf);
+        const chrome = [...document.querySelectorAll(".toolbar, .viewbar, .menu-button, .readout, .lab-note, .guide, .guide-pill")].map(boxOf);
         const parts = [...document.querySelectorAll(".control, .input-nodes")].filter((c) => c !== knob).map(boxOf);
         let best = Infinity;
         for (const s of SIDES) {
