@@ -11,8 +11,10 @@ export interface KnobDef {
   y: number;
   /** Position at power-up, 0 (fully counter-clockwise) .. 1 (fully clockwise). */
   initial: number;
-  /** Human-readable value for the hint bubble. */
+  /** Human-readable value for the slider and the hint bubble. */
   format: (value: number) => string;
+  /** Position at which the control reads zero, when that is not its lower end stop. */
+  origin?: number;
 }
 
 export interface SlideDef {
@@ -41,7 +43,7 @@ export const EMONA_KNOBS: KnobDef[] = [
   { id: "buffer.gain", label: "BUFFER GAIN", x: 820.5, y: 468.5, initial: 0.1, format: (v) => `× ${fixed(10 * v)}` },
   { id: "tlpf.fc", label: "TUNEABLE LPF fc", x: 1505.5, y: 370.5, initial: 0.6, format: (v) => hz(600 * Math.pow(20, v)) },
   { id: "tlpf.gain", label: "TUNEABLE LPF GAIN", x: 1505.5, y: 514.5, initial: 0.5, format: (v) => `× ${fixed(2 * v)}` },
-  { id: "dcv.vdc", label: "VDC", x: 138.5, y: 1016.5, initial: 0.5, format: (v) => `${fixed((v - 0.5) * 5)} V` },
+  { id: "dcv.vdc", label: "VDC", x: 138.5, y: 1016.5, initial: 0.5, origin: 0.5, format: (v) => `${fixed((v - 0.5) * 5)} V` },
   { id: "vco.gain", label: "VCO GAIN", x: 306, y: 920, initial: 0.25, format: (v) => `${Math.round(v * 100)} %` },
   { id: "vco.freq", label: "VCO FREQ", x: 307, y: 1015.5, initial: 0.5625, format: (v) => `${Math.round(v * 100)} %` },
 ];

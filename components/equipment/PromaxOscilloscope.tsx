@@ -162,8 +162,9 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
     onChange: (v: number) => void,
     format: (v: number) => string,
     resetTo: number,
+    origin?: number,
   ) => (
-    <Rotary x={x} y={y} r={31} label={label} value={value} onChange={onChange} format={format} resetTo={resetTo}>
+    <Rotary x={x} y={y} r={31} label={label} value={value} onChange={onChange} format={format} resetTo={resetTo} origin={origin}>
       <CapMark dx={capX - (x - 31)} dy={capY - (y - 31)} r={17} value={value} />
     </Rotary>
   );
@@ -212,6 +213,7 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
           (v) => controlActions.channel("ch1", { pos: toBipolar(v) }),
           (v) => signed((v * 2 - 1) * 5, "div"),
           0.5,
+          0.5,
         )}
         {knob(
           "CH2 POSITION",
@@ -222,6 +224,7 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
           bipolar(s.ch2.pos),
           (v) => controlActions.channel("ch2", { pos: toBipolar(v) }),
           (v) => signed((v * 2 - 1) * 5, "div"),
+          0.5,
           0.5,
         )}
 
@@ -272,7 +275,6 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
             label={`${ch.toUpperCase()} VOLTS/DIV`}
             value={s[ch].vdiv}
             steps={VOLTS_DIV.length}
-            sweep={254}
             onChange={(v) => controlActions.channel(ch, { vdiv: v })}
             format={(v) => formatVolts(VOLTS_DIV[v] / (ch === "ch1" && s.mag5 ? 5 : 1))}
           >
@@ -304,6 +306,7 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
           bipolar(s.level),
           (v) => set({ level: toBipolar(v) }),
           (v) => signed((v * 2 - 1) * 4, "div"),
+          0.5,
           0.5,
         )}
         <Slide
@@ -364,6 +367,7 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
           (v) => set({ hpos: toBipolar(v) }),
           (v) => signed((v * 2 - 1) * 5.5, "div"),
           0.5,
+          0.5,
         )}
         {knob(
           "SWEEP VARIABLE",
@@ -407,7 +411,6 @@ export const PromaxOscilloscope = memo(function PromaxOscilloscope() {
           label="TIME/DIV"
           value={s.tdiv}
           steps={TIME_DIV.length}
-          sweep={278}
           onChange={(v) => set({ tdiv: v })}
           format={(v) => formatTime(TIME_DIV[v] / (s.mag10 ? 10 : 1))}
         >

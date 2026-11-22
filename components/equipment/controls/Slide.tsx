@@ -76,6 +76,14 @@ export function Slide({
       aria-label={`${label}: ${positions[value]}`}
       tabIndex={0}
       onPointerDown={pick}
+      onPointerEnter={(e) => {
+        if (e.buttons !== 0) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        hint.show(`${label}  ${positions[value]}`, rect.left + rect.width / 2, rect.top);
+      }}
+      onPointerLeave={(e) => {
+        if (e.buttons === 0) hint.hide();
+      }}
       onKeyDown={(e) => {
         const dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
         if (!dir) return;

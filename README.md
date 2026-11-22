@@ -44,8 +44,11 @@ Read **Image rights** below before sharing the public link.
 | Remove a lead | Remove tool, then click the lead or a socket. Or click a lead and press Delete |
 | Change a lead's colour | Choose the colour and draw the lead again over the old one |
 | Undo | Toolbar button or Ctrl/⌘ + Z |
-| Turn a knob | Drag around its centre, or focus it and use the arrow keys. Double-click returns it to its starting position |
-| Slide switch | Click the position you want |
+| Turn a knob | Click it: a slider opens beside it. Drag the slider, click its rail, scroll over it, or use the arrow keys (Shift for bigger steps, Home/End for the end stops). Range switches (VOLTS/DIV, TIME/DIV) only land on their printed settings |
+| Turn a knob without the slider | Press on the knob and drag right/up or left/down; hold Shift for fine adjustment |
+| Close the slider | Click anywhere else, click the knob again, or press Escape. Only one slider is open at a time |
+| Reset a knob | The ↺ button in its slider, or double-click the knob |
+| Slide switch, push button | Click the position you want; clicking the handle moves it to the next position |
 
 The bench (positions, leads, settings) is saved in the browser's local storage and restored on reload. Benches saved by earlier versions are converted on load: the old red/black oscilloscope cable becomes two leads, and a lead that ran from a trainer GND socket to an input (when an input was a single socket) is moved to that input's ground node.
 

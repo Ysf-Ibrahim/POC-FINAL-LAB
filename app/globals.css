@@ -144,10 +144,16 @@ body {
 }
 .control-rotary {
   border-radius: 50%;
-  cursor: grab;
+  cursor: pointer;
 }
-.control-rotary:active {
-  cursor: grabbing;
+.control-rotary.is-turning {
+  cursor: ew-resize;
+}
+/* The knob whose slider is open. Sizes are in photograph pixels, hence the weight. */
+.control-rotary.is-active {
+  box-shadow:
+    0 0 0 3.5px var(--accent),
+    0 0 0 7px rgba(43, 125, 224, 0.28);
 }
 
 .cap-mark {
@@ -469,6 +475,142 @@ body {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
+}
+
+/* Slider that opens beside a knob. Screen space: one size at any zoom. */
+.knob-slider {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  padding: 8px 12px 9px;
+  border-radius: 11px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 10px 28px -10px rgba(20, 20, 24, 0.34),
+    0 1px 2px rgba(20, 20, 24, 0.08);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.ks-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 18px;
+  font-size: 11px;
+  line-height: 1;
+}
+.ks-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.ks-value {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.ks-reset {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: -4px;
+  border-radius: 5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.ks-reset:hover:not(:disabled) {
+  background: var(--active);
+  color: var(--ink);
+}
+.ks-reset:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+.ks-track {
+  position: relative;
+  height: 24px;
+  margin-top: 2px;
+  outline: none;
+  cursor: pointer;
+  touch-action: none;
+}
+/* Hit area reaches past both ends so the end stops are easy to hit. */
+.ks-track::before {
+  content: "";
+  position: absolute;
+  inset: 0 -10px;
+}
+.ks-rail,
+.ks-fill {
+  position: absolute;
+  top: 10px;
+  height: 4px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.ks-rail {
+  left: -2px;
+  right: -2px;
+  background: rgba(24, 24, 28, 0.13);
+}
+.ks-fill {
+  background: var(--accent);
+}
+.ks-tick,
+.ks-mark {
+  position: absolute;
+  width: 1.5px;
+  margin-left: -0.75px;
+  border-radius: 1px;
+  pointer-events: none;
+}
+.ks-tick {
+  top: 8px;
+  height: 8px;
+  background: rgba(24, 24, 28, 0.3);
+}
+.ks-tick.is-on {
+  background: var(--accent);
+}
+.ks-mark {
+  top: 17px;
+  height: 4px;
+  background: rgba(24, 24, 28, 0.38);
+}
+.ks-thumb {
+  position: absolute;
+  left: -7px;
+  top: 5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 1px 2.5px rgba(20, 20, 24, 0.28);
+  pointer-events: none;
+}
+.ks-track:active .ks-thumb {
+  background: var(--accent);
+}
+.ks-track:focus-visible .ks-thumb {
+  box-shadow:
+    0 0 0 3px rgba(43, 125, 224, 0.3),
+    0 1px 2.5px rgba(20, 20, 24, 0.28);
+}
+.ks-reset:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .hint {

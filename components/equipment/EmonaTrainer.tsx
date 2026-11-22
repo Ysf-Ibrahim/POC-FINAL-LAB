@@ -81,6 +81,7 @@ export const EmonaTrainer = memo(function EmonaTrainer() {
               onChange={(v) => controlActions.knob(k.id, v)}
               format={k.format}
               resetTo={k.initial}
+              origin={k.origin}
             >
               <TrimmerRotor value={value} />
             </Rotary>
