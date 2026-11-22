@@ -38,7 +38,7 @@ const hz = (f: number) => (f >= 1000 ? `${fixed(f / 1000, f >= 10_000 ? 1 : 2)} 
 export const EMONA_KNOBS: KnobDef[] = [
   { id: "adder.G", label: "ADDER G", x: 136, y: 322, initial: 0.5, format: (v) => `G = −${fixed(2 * v)}` },
   { id: "adder.g", label: "ADDER g", x: 135, y: 515.5, initial: 0.5, format: (v) => `g = −${fixed(2 * v)}` },
-  { id: "twin.width", label: "WIDTH", x: 480.5, y: 324, initial: 0.2, format: (v) => `${fixed(5 + 35 * v, 1)} µs` },
+  { id: "twin.width", label: "WIDTH", x: 480.5, y: 324, initial: 0.45, format: (v) => `${fixed(5 + 35 * v, 1)} µs` },
   { id: "twin.delay", label: "DELAY", x: 481, y: 517.5, initial: 0, format: (v) => `${Math.round(50 + 250 * v)} µs` },
   { id: "buffer.gain", label: "BUFFER GAIN", x: 820.5, y: 468.5, initial: 0.1, format: (v) => `× ${fixed(10 * v)}` },
   { id: "tlpf.fc", label: "TUNEABLE LPF fc", x: 1505.5, y: 370.5, initial: 0.6, format: (v) => hz(600 * Math.pow(20, v)) },

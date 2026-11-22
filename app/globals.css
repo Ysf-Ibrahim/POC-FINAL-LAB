@@ -1841,6 +1841,71 @@ body {
   color: var(--muted);
 }
 
+/* Lab 5 receiver explorer */
+.dmx-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+}
+.dmx-chain button {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 560;
+  color: var(--ink);
+  cursor: pointer;
+}
+.dmx-chain button.is-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.dmx-chain button::after,
+.dmx-node:first-child::after {
+  content: "";
+}
+.dmx-node {
+  color: var(--muted);
+}
+.dmx-chain > *:not(:last-child)::after {
+  content: " →";
+  margin-left: 4px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.dmx-chain button.is-on::after {
+  color: rgba(255, 255, 255, 0.6);
+}
+.dmx-in {
+  fill: rgba(43, 125, 224, 0.07);
+}
+.dmx-out {
+  fill: rgba(31, 157, 85, 0.09);
+}
+.dmx-stage {
+  margin: 8px 0 0;
+  border-top: 1px solid var(--line);
+}
+.dmx-stage > div {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.dmx-stage dt {
+  font-weight: 620;
+  color: var(--ink-soft);
+}
+
 /* figure parts */
 .f-grid {
   stroke: rgba(255, 255, 255, 0.16);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
+import { Measure } from "@/components/guide/Measure";
 import { useBench } from "@/components/guide/useBench";
 import { TIME_DIV } from "@/lib/controls/store";
 import { knobValue, switchValue } from "@/lib/controls/emonaControls";
@@ -21,10 +22,29 @@ const fmtTime = (t: number) => (t >= 1e-3 ? `${+(t * 1e3).toPrecision(3)} ms` : 
 
 export type DialEnd = "min" | "max";
 
+/** The TIME/DIV in use, as text, with a value in seconds. */
+export const timeBase = (b: Bench) => {
+  const t = timePerDiv(b);
+  return { seconds: t, text: `${fmtTime(t)}/div` };
+};
+
+/** Working for a frequency measurement: period, and divisions at the current TIME/DIV. */
+export function frequencyWorking(b: Bench, hz: number) {
+  const tdiv = timePerDiv(b);
+  const period = 1 / hz;
+  const divs = period / tdiv;
+  return (
+    <>
+      The signal is <strong>{khz(hz)}</strong>. Its period is 1 / {khz(hz)} = <strong>{us(period)}</strong>, which at{" "}
+      {fmtTime(tdiv)}/div is <strong>{divs.toFixed(1)} divisions</strong>
+      {divs > 10 ? ": more than the screen, so choose a slower TIME/DIV" : divs < 1 ? ": less than one division, so choose a faster TIME/DIV" : ""}.
+    </>
+  );
+}
+
 /**
- * "Measure it yourself": the student enters the frequency read off the
- * scope; the tool compares it with the signal actually on the socket and
- * shows the working in divisions of the current TIME/DIV.
+ * "Measure it yourself" for the VCO's rest frequency at one end of its dial:
+ * the student enters the frequency read off the scope and gets the working back.
  */
 export function MeasureFrequency({
   port,
@@ -39,87 +59,25 @@ export function MeasureFrequency({
   /** Dial position the measurement is for. */
   dial: DialEnd;
 }) {
-  const id = useId();
-  const bench = useBench();
-  const [text, setText] = useState("");
-  const [shown, setShown] = useState<"check" | "answer" | null>(null);
-  const r = switchValue(bench.controls.emona, "vco.range");
-  const pos = knobValue(bench.controls.emona, "vco.freq");
-  const atEnd = dial === "min" ? pos <= 0.015 : pos >= 0.985;
-  const precondition =
-    r !== range
-      ? `Set the range switch to ${range ? "HI" : "LO"} first.`
-      : !atEnd
-        ? `Turn the FREQ dial fully ${dial === "min" ? "counter-clockwise (minimum)" : "clockwise (maximum)"} first.`
-        : null;
-
-  const f = precondition ? 0 : bench.frequency(port);
-  const tdiv = timePerDiv(bench);
-  const period = f > 0 ? 1 / f : 0;
-  const divs = period / tdiv;
-  const entered = Number(text.replace(",", "."));
-  const enteredHz = entered * 1000;
-  const close = f > 0 && Number.isFinite(entered) && Math.abs(enteredHz - f) <= f * 0.08;
-
-  const working =
-    f > 0 ? (
-      <>
-        The signal is <strong>{khz(f)}</strong>. Its period is 1 / {khz(f)} = <strong>{us(period)}</strong>, which at{" "}
-        {fmtTime(tdiv)}/div is <strong>{divs.toFixed(1)} divisions</strong>
-        {divs > 10 ? ": more than the screen, so choose a slower TIME/DIV" : divs < 1 ? ": less than one division, so choose a faster TIME/DIV" : ""}.
-      </>
-    ) : (
-      "Nothing is oscillating on that socket."
-    );
-
   return (
-    <section className="measure" aria-label={label}>
-      <div className="quiz-label">Your measurement · {label}</div>
-      {precondition ? (
-        <p className="measure-wait">{precondition}</p>
-      ) : (
-        <>
-          <div className="quiz-row">
-            <label htmlFor={id} className="sr-only">
-              {label} in kHz
-            </label>
-            <input
-              id={id}
-              className="quiz-input"
-              inputMode="decimal"
-              placeholder="Measured"
-              value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                setShown(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && text.trim()) setShown("check");
-              }}
-            />
-            <span className="quiz-unit">kHz</span>
-            <button type="button" className="g-button" disabled={!text.trim()} onClick={() => setShown("check")}>
-              Check
-            </button>
-            <button type="button" className="quiz-again" onClick={() => setShown("answer")}>
-              Show me
-            </button>
-          </div>
-          {shown && (
-            <div className={`quiz-feedback ${shown === "check" ? (close ? "is-right" : "is-wrong") : ""}`} role="status">
-              {shown === "check" && (close ? <strong>Good measurement. </strong> : <strong>Not quite. </strong>)}
-              {working}
-              {shown === "check" && !close && Number.isFinite(entered) && f > 0 && (
-                <p>
-                  Count the divisions of one full cycle (rising crossing to the next rising crossing), multiply by TIME/DIV to
-                  get the period, then take 1 / period.
-                </p>
-              )}
-            </div>
-          )}
-        </>
-      )}
-    </section>
+    <Measure
+      label={label}
+      unit="kHz"
+      precondition={(b) => {
+        const r = switchValue(b.controls.emona, "vco.range");
+        const pos = knobValue(b.controls.emona, "vco.freq");
+        if (r !== range) return `Set the range switch to ${range ? "HI" : "LO"} first.`;
+        if (dial === "min" ? pos > 0.015 : pos < 0.985)
+          return `Turn the FREQ dial fully ${dial === "min" ? "counter-clockwise (minimum)" : "clockwise (maximum)"} first.`;
+        return null;
+      }}
+      truth={(b) => {
+        const f = b.frequency(port);
+        return f > 0 ? f / 1000 : null;
+      }}
+      working={(b, v) => frequencyWorking(b, v * 1000)}
+      hint="Count the divisions of one full cycle (rising crossing to the next rising crossing), multiply by TIME/DIV to get the period, then take 1 / period."
+    />
   );
 }
 
