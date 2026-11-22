@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Analytics } from "@vercel/analytics/next";
 import { LabMenu } from "@/components/nav/LabMenu";
 import { ControlHint } from "@/components/ui/ControlHint";
 import { LabWorkspace } from "@/components/workspace/LabWorkspace";
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <LabMenu />
         <ControlHint />
         {children}
+        <Analytics />
       </body>
     </html>
   );
