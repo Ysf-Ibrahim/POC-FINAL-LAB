@@ -2,7 +2,7 @@
 
 An interactive bench for the Principles of Communication laboratory: the **EMONA Telecoms-Trainer 101** (black BiSKIT board) and the **PROMAX OD-402B** 20 MHz oscilloscope. Patch the trainer with leads, connect it to the oscilloscope, and the CRT shows the signal.
 
-Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)**, **Lab 3 (Amplitude Demodulation)**, **Lab 4 (Frequency Modulation)** and **Lab 5 (Frequency Demodulation)** have full guidelines: theory, the practical steps with live checks, and an oral-exam question bank. Labs 6 and 7 are routes without a guideline yet; the menu marks each lab with a tick or "Not implemented".
+Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)**, **Lab 3 (Amplitude Demodulation)**, **Lab 4 (Frequency Modulation)**, **Lab 5 (Frequency Demodulation)** and **Lab 6 (Sampling and Reconstruction)** have full guidelines: theory, the practical steps with live checks, and an oral-exam question bank. Lab 7 is a route without a guideline yet; the menu marks each lab with a tick or "Not implemented".
 
 ## Run it
 
@@ -132,6 +132,12 @@ The theory follows the Lab 4 lesson pattern. Its **demodulator explorer** (`lib/
 
 The TWIN PULSE GENERATOR's WIDTH now starts at about 21 µs (it used to start at exactly 12 µs), so the calibration step needs a real adjustment. On this model the baseband LPF output is small (about 0.1 Vp-p, about 1 Vp-p after the BUFFER at full gain); the report's route through the TUNEABLE LPF at full gain gives about 4 Vp-p.
 
+### Lab 6 sources and teaching method
+
+Procedure from the Experiment 6 lab sheet: natural sampling with the DUAL ANALOG SWITCH as in its Figure 2 (2kHz SINE → IN 2, 8kHz DIGITAL → CONTROL 2, OUT → CH2), sample-and-hold as in Figure 4 (2kHz SINE → S&H IN, 8kHz DIGITAL → CONTROL 1, S&H OUT → CH2), then each sampled signal through the TUNEABLE LPF. IN 1 with CONTROL 1 is accepted for natural sampling too. Two optional steps follow the lab report and the instructor's suggestion: the 2kHz DIGITAL clock (undersampling; with f_s = f_m the held output is a flat line, as in the report's photo) and the 100kHz DIGITAL clock (oversampling, 48 samples per cycle). A last optional step, not in the lab sheet, uses the VCO's DIGITAL output as a 3 kHz clock and measures the aliased output at f_s − f_m ≈ 0.9 kHz.
+
+The **sampling explorer** (`lib/labs/lab6/explorer.tsx`) runs the trainer's own Dual Analog Switch, sample-and-hold and Tuneable LPF models through the signal engine. Only MASTER SIGNALS is replaced by a message and clock whose frequency, phase and duty cycle can be changed, so aliasing, the flat output at f_s = f_m, the hold's droop and the filter's effect come from the same models as the bench. Its spectrum is measured from the simulated waveforms. The guide notes where the model and the lab report's photos differ: the model's clock rises at the sine's zero crossing, so its four held levels are 0, +2, 0 and −2 V, while the report's photo shows other heights because of the real board's phase.
+
 ### Adding a guideline for another lab
 
 1. Create `lib/labs/labN/guide.tsx` exporting a `Guide` (see `lib/guide/types.ts`): sections of steps, each with a body, an optional `why`, `highlight` (sockets and controls by id/name), `checks` (functions of the `Bench`) and question ids.
@@ -217,7 +223,7 @@ These are not confirmed by the documents available and are marked `Assumption` i
 - **Trainer modules with no signal yet** (sockets can be patched, the output stays at 0 V): PHASE SHIFTER, SEQUENCE GENERATOR, DIVIDER, SERIAL TO PARALLEL, SPEECH. The reason for each is in `UNSIMULATED_MODULES`. PCM ENCODER TDM mode and PCM DECODER OUTPUT2 are also not modelled.
 - **Oscilloscope**: X-Y mode (its switch position is hidden in the photograph), TV-V / TV-H triggering, the VOLTS/DIV VARIABLE knobs (fixed at CAL), TRACE ROTATION, bandwidth limiting.
 - **Indicators on the range switches**: the white pointers on VOLTS/DIV and TIME/DIV and the index lines on the small knobs are drawn by the app so the settings can be read; the photograph underneath shows the knobs as they were when it was taken.
-- **Labs 6–7**: navigation only; no guideline yet.
+- **Lab 7**: navigation only; no guideline yet.
 - **Lab 4**: the free-running VCO is not locked to the message, so the FM trace on the oscilloscope overlaps from sweep to sweep, as on the real instrument; the guide's FM explorer shows one sweep. Speech and square-wave messages from the lab sheet's overview are not used (the trainer's SPEECH module is not simulated).
 - **Lab 2 and 3 guidelines**: the MATLAB parts of the lab sheets are explained but not run; there is no spectrum analyser on the bench, so spectra are shown as illustrations, not measured.
 - **Bench impedances**: modules do not load each other; each output drives its net as an ideal source. This is why the Rectifier + RC LPF path behaves as a pure average.
