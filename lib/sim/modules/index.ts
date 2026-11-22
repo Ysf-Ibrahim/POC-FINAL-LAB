@@ -108,18 +108,37 @@ export function vcoRest(c: EmonaControls) {
   const [lo, top] = hi ? [60_000, 140_000] : [1_000, 17_000];
   return { lo, top, rest: lo + k(c, "vco.freq") * (top - lo) };
 }
+/** Largest control voltage the VCO input responds to; beyond it the frequency stops changing. */
+export const VCO_INPUT_LIMIT = 3;
+/** VCO sensitivity in Hz per volt: GAIN scales how strongly the input moves the frequency. */
+export const vcoSensitivity = (c: EmonaControls) => {
+  const { lo, top } = vcoRest(c);
+  return (k(c, "vco.gain") * (top - lo)) / (2 * VCO_INPUT_LIMIT);
+};
+/**
+ * The VCO's frequency law, f = f_rest + k·v, with the input limited to ±3 V
+ * and the frequency kept within the oscillator's reach. The model below and
+ * the lab guides both use this one function.
+ */
+export function vcoLaw(c: EmonaControls) {
+  const { lo, top, rest } = vcoRest(c);
+  const perVolt = vcoSensitivity(c);
+  return (v: number) => {
+    const vin = Math.max(-VCO_INPUT_LIMIT, Math.min(VCO_INPUT_LIMIT, v));
+    return Math.max(lo * 0.5, Math.min(top * 1.2, rest + perVolt * vin));
+  };
+}
 const vco: ModuleModel = {
   id: "vco",
   inputs: ["vco.in"],
   outputs: ["vco.sine", "vco.digital"],
   freeRunning: true,
   create: ({ dt, controls, random }) => {
-    const { lo, top, rest } = vcoRest(controls);
-    const perVolt = (k(controls, "vco.gain") * (top - lo)) / 6;
+    const law = vcoLaw(controls);
     let phase = random();
     return (inp, out) => {
-      const vin = Math.max(-3, Math.min(3, inp[0]));
-      const f = Math.max(lo * 0.5, Math.min(top * 1.2, rest + perVolt * vin));
+      // Accumulate phase: the output's phase is the running integral of its instantaneous frequency.
+      const f = law(inp[0]);
       phase += f * dt;
       phase -= Math.floor(phase);
       out[0] = ANALOG_PEAK * Math.sin(TWO_PI * phase);

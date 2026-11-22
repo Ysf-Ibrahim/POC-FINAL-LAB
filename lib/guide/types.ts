@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Bench } from "./bench";
 
 /** Where a question comes from. Shown on every question so sources are never blurred. */
-export type QuestionSource = "reported" | "instructor" | "manual" | "predicted";
+export type QuestionSource = "reported" | "instructor" | "manual" | "experiment" | "predicted";
 
 export interface Question {
   id: string;

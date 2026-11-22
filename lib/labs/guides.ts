@@ -8,6 +8,7 @@ import type { Guide } from "../guide/types";
 const LOADERS: Record<number, () => Promise<{ default: Guide }>> = {
   2: () => import("./lab2/guide"),
   3: () => import("./lab3/guide"),
+  4: () => import("./lab4/guide"),
 };
 
 export const hasGuide = (labId: number) => labId in LOADERS;

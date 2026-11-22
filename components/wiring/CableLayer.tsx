@@ -20,6 +20,16 @@ const RIM = "rgba(214,216,222,0.5)";
 /** Functions that re-route one cable from live scene geometry, keyed by cable id. */
 type Rerouters = Map<string, () => void>;
 
+/** The front-panel control under a screen point, if a lead is lying across it. */
+function controlUnder(x: number, y: number): HTMLElement | null {
+  for (const el of document.elementsFromPoint(x, y)) {
+    const control = el.closest<HTMLElement>(".control");
+    if (control) return control;
+    if (el.closest(".equipment")) return null; // reached the instrument itself: no control here
+  }
+  return null;
+}
+
 const at = (p: { x: number; y: number }) => `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`;
 
 /** Top view of a 2 mm stackable plug. */
@@ -78,8 +88,31 @@ const CableView = memo(function CableView({
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    // A lead lying across a knob, switch or button must not hide it: the press goes to the control.
+    const control = controlUnder(e.clientX, e.clientY);
+    if (control) {
+      if (control instanceof HTMLButtonElement) return; // buttons act on click; see onClick
+      control.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+          clientX: e.clientX,
+          clientY: e.clientY,
+          pointerId: e.pointerId,
+          pointerType: e.pointerType,
+          isPrimary: e.isPrimary,
+          button: e.button,
+          buttons: e.buttons,
+        }),
+      );
+      return;
+    }
     if (cableStore.get().tool === "remove") cableActions.remove(cable.id);
     else cableActions.select(cableStore.get().selected === cable.id ? null : cable.id);
+  };
+  const onClick = (e: React.MouseEvent) => {
+    const control = controlUnder(e.clientX, e.clientY);
+    if (control instanceof HTMLButtonElement) control.click();
   };
 
   return (
@@ -105,6 +138,7 @@ const CableView = memo(function CableView({
         strokeLinecap="round"
         pointerEvents="stroke"
         onPointerDown={onPointerDown}
+        onClick={onClick}
       />
     </g>
   );

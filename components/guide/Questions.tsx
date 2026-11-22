@@ -7,12 +7,13 @@ const SOURCE_LABEL: Record<QuestionSource, string> = {
   reported: "Reported in past orals",
   instructor: "Instructor notes",
   manual: "Lab sheet",
+  experiment: "From the experiment",
   predicted: "Predicted",
 };
 
 /** Question text is plain; turn A_m, V_DC, f_c and the like into set subscripts. */
 function rich(text: string): ReactNode {
-  return text.split(/([A-Za-z]_(?:DC|[a-z]))/g).map((part, i) => {
+  return text.split(/([A-Za-z]_(?:max|min|rest|DC|[a-z]))/g).map((part, i) => {
     const m = /^([A-Za-z])_(.+)$/.exec(part);
     return m ? (
       <span key={i}>
@@ -153,9 +154,105 @@ function SelfTest({ guide }: { guide: Guide }) {
   );
 }
 
-/** The final question bank of a lab: everything to revise, by source, plus a self-test. */
+type Rating = "knew" | "partly" | "missed";
+
+/** Hardest first: predicted questions, then instructor and reported ones, then the rest, each group shuffled. */
+function practiceOrder(guide: Guide): string[] {
+  const rank: Record<QuestionSource, number> = { predicted: 0, instructor: 1, reported: 1, manual: 2, experiment: 2 };
+  const ids = [...new Set(guide.bank.flatMap((c) => c.questions))];
+  const groups: string[][] = [[], [], []];
+  for (const id of ids) {
+    const q = guide.questions.find((x) => x.id === id);
+    if (q) groups[rank[q.source]].push(id);
+  }
+  return groups.flatMap((g) => shuffled(g));
+}
+
+/**
+ * Practice oral exam: one question at a time, answer aloud, reveal, rate
+ * yourself. Questions you missed come back soon; ones you knew are retired.
+ * Session only: nothing is stored.
+ */
+function PracticeExam({ guide }: { guide: Guide }) {
+  const [queue, setQueue] = useState<string[]>(() => practiceOrder(guide));
+  const [revealed, setRevealed] = useState(false);
+  const [tally, setTally] = useState<Record<Rating, number>>({ knew: 0, partly: 0, missed: 0 });
+  const question = guide.questions.find((q) => q.id === queue[0]);
+
+  const rate = (r: Rating) => {
+    setTally((t) => ({ ...t, [r]: t[r] + 1 }));
+    setQueue((q) => {
+      const [head, ...rest] = q;
+      if (r === "knew") return rest;
+      const at = Math.min(rest.length, r === "missed" ? 2 : 5); // missed: back very soon
+      return [...rest.slice(0, at), head, ...rest.slice(at)];
+    });
+    setRevealed(false);
+  };
+
+  return (
+    <div className="q-test">
+      <div className="q-tally" aria-live="polite">
+        <span>Knew {tally.knew}</span>
+        <span>Partly {tally.partly}</span>
+        <span>To revisit {tally.missed}</span>
+        <span>{queue.length} left</span>
+      </div>
+      {question ? (
+        <article className="q-card q-card-test">
+          <SourceTag source={question.source} />
+          <h4>{rich(question.q)}</h4>
+          {revealed ? (
+            <>
+              <p className="q-answer">{rich(question.a)}</p>
+              {question.more && <p className="q-explain">{rich(question.more)}</p>}
+              <div className="q-rate" role="group" aria-label="How well did you know it?">
+                <button type="button" className="g-button" onClick={() => rate("missed")}>
+                  Didn&rsquo;t know
+                </button>
+                <button type="button" className="g-button" onClick={() => rate("partly")}>
+                  Partly
+                </button>
+                <button type="button" className="g-button g-button-primary" onClick={() => rate("knew")}>
+                  Knew it
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="q-think">Answer aloud, as you would to the examiner. Then reveal.</p>
+              <button type="button" className="g-button g-button-primary" onClick={() => setRevealed(true)}>
+                Reveal answer
+              </button>
+            </>
+          )}
+        </article>
+      ) : (
+        <article className="q-card q-card-test">
+          <h4>Session complete</h4>
+          <p className="q-answer">
+            You worked through every question. Start again for a new order; questions you rate &ldquo;Didn&rsquo;t know&rdquo;
+            keep coming back until you know them.
+          </p>
+          <button
+            type="button"
+            className="g-button g-button-primary"
+            onClick={() => {
+              setQueue(practiceOrder(guide));
+              setTally({ knew: 0, partly: 0, missed: 0 });
+            }}
+          >
+            Start again
+          </button>
+        </article>
+      )}
+    </div>
+  );
+}
+
+/** The final question bank of a lab: everything to revise, by source, plus a self-test and a practice exam. */
 export function ExamBank({ guide }: { guide: Guide }) {
-  const [mode, setMode] = useState<"read" | "test">("read");
+  const [mode, setMode] = useState<"read" | "test" | "practice">("read");
   const total = guide.bank.reduce((n, c) => n + c.questions.length, 0);
   return (
     <div className="q-bank">
@@ -166,9 +263,14 @@ export function ExamBank({ guide }: { guide: Guide }) {
         <button type="button" role="tab" aria-selected={mode === "test"} className={mode === "test" ? "is-on" : ""} onClick={() => setMode("test")}>
           Test yourself
         </button>
+        <button type="button" role="tab" aria-selected={mode === "practice"} className={mode === "practice" ? "is-on" : ""} onClick={() => setMode("practice")}>
+          Practice oral exam
+        </button>
       </div>
       {mode === "test" ? (
         <SelfTest guide={guide} />
+      ) : mode === "practice" ? (
+        <PracticeExam guide={guide} />
       ) : (
         guide.bank.map((category) => (
           <section key={category.id} className="q-category">

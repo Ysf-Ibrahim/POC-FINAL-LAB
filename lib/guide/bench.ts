@@ -199,6 +199,42 @@ export class Bench {
     };
   }
 
+  /**
+   * Frequency of the signal on a socket, from its rising zero crossings (about
+   * its mean), measured over `duration`. 0 when it does not oscillate.
+   */
+  frequency(port: string, duration = 4e-3, dt = 0.25e-6): number {
+    const [v] = this.record([port], { duration, dt });
+    let mean = 0;
+    for (let i = 0; i < v.length; i++) mean += v[i];
+    mean /= v.length;
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < v.length; i++) {
+      if (v[i] < lo) lo = v[i];
+      if (v[i] > hi) hi = v[i];
+    }
+    if (hi - lo < 0.05) return 0;
+    const hyst = (hi - lo) * 0.1;
+    let armed = false;
+    let first = -1;
+    let last = -1;
+    let count = 0;
+    for (let i = 1; i < v.length; i++) {
+      const a = v[i - 1] - mean;
+      const b = v[i] - mean;
+      if (b < -hyst) armed = true;
+      if (armed && a < 0 && b >= 0) {
+        const t = (i - 1 + -a / (b - a)) * dt;
+        if (first < 0) first = t;
+        last = t;
+        count++;
+        armed = false;
+      }
+    }
+    return count >= 2 ? (count - 1) / (last - first) : 0;
+  }
+
   reading(port: string, opts?: RecordOptions): Reading {
     const [v] = this.record([port], opts);
     let min = Infinity;

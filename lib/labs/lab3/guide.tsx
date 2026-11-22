@@ -1,8 +1,6 @@
 import { Eq, Figure, Frac, Note, Settings, Terms, V } from "@/components/guide/parts";
-import { portTitle } from "@/lib/cables/feedback";
 import type { Bench, Tone } from "@/lib/guide/bench";
 import type { Check, CheckResult, Guide, Section } from "@/lib/guide/types";
-import { PORTS } from "@/lib/ports/registry";
 import { tlpfCutoff, tlpfGain } from "@/lib/sim/modules";
 import {
   ADDER_A,
@@ -22,6 +20,7 @@ import {
   steady,
   volts,
 } from "../am";
+import { fedBy, probeOn } from "../checks";
 import { AmFigure, BlockDiagram } from "../lab2/figures";
 import {
   ChainFigure,
@@ -63,10 +62,6 @@ const TLPF_OUT = "tlpf.out";
 // ------------------------------------------------------------- readings
 const fixed = (v: number, d = 2) => (Math.abs(v) < 0.5 * 10 ** -d ? 0 : v).toFixed(d);
 const vpp = (v: number) => `${fixed(v)} Vp-p`;
-const title = (id: string) => {
-  const port = PORTS.get(id);
-  return port ? portTitle(port) : id;
-};
 const hz = (f: number) => (f >= 1000 ? `${(f / 1000).toFixed(1)} kHz` : `${Math.round(f)} Hz`);
 
 /** The AM signal's socket, wherever the student built the modulator. */
@@ -81,28 +76,8 @@ const fedAm =
     return { ok: b.linked(input, am) };
   };
 
-/** `input` is driven by `from` and by no other output. */
-const fedBy =
-  (input: string, from: string): Check["test"] =>
-  (b) => {
-    if (!b.linked(input, from)) return { ok: false };
-    const others = b.drivers(input).filter((d) => d !== from);
-    return others.length
-      ? { ok: false, detail: `${title(others[0])} is also connected here. Two outputs must never be joined: remove that lead.` }
-      : { ok: true };
-  };
-
 /** The oscilloscope's CH2 shows `node`, and only `node`. */
-const probe =
-  (node: string): Check["test"] =>
-  (b) => {
-    const drivers = b.drivers(CH2);
-    const others = drivers.filter((d) => d !== node);
-    if (others.length && b.linked(CH2, node))
-      return { ok: false, detail: `CH2 is still connected to ${title(others[0])} as well. Remove that lead, so CH2 sees one node only.` };
-    if (others.length) return { ok: false, detail: `CH2 still shows ${title(others[0])}.` };
-    return { ok: b.linked(CH2, node) };
-  };
+const probe = probeOn(CH2);
 
 const describe = (t: Tone) =>
   `2 kHz message ${vpp(t.messageVpp)} · carrier ripple ${fixed(t.ripple, t.ripple < 0.1 ? 3 : 2)} V${

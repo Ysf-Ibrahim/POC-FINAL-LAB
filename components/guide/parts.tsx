@@ -81,3 +81,50 @@ export function Settings({ rows }: { rows: [string, ReactNode][] }) {
     </table>
   );
 }
+
+/**
+ * One concept, taught in a fixed order: the question, the idea in plain words
+ * (children, usually with a figure), the numbers, where it lives on the bench,
+ * the answer to give in the oral, and a check of understanding.
+ */
+export function Lesson({
+  ask,
+  children,
+  numbers,
+  bench,
+  oral,
+  check,
+}: {
+  ask: ReactNode;
+  children: ReactNode;
+  numbers?: ReactNode;
+  bench?: ReactNode;
+  oral?: ReactNode;
+  check?: ReactNode;
+}) {
+  return (
+    <div className="lesson">
+      <p className="lesson-ask">{ask}</p>
+      {children}
+      {numbers && (
+        <aside className="g-note g-note-numbers">
+          <strong>In numbers</strong>
+          <div>{numbers}</div>
+        </aside>
+      )}
+      {bench && (
+        <aside className="g-note g-note-hardware">
+          <strong>On the trainer</strong>
+          <div>{bench}</div>
+        </aside>
+      )}
+      {oral && (
+        <aside className="g-note g-note-exam">
+          <strong>Say it in the oral</strong>
+          <div>{oral}</div>
+        </aside>
+      )}
+      {check}
+    </div>
+  );
+}

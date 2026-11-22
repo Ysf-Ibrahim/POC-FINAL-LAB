@@ -2,7 +2,7 @@
 
 An interactive bench for the Principles of Communication laboratory: the **EMONA Telecoms-Trainer 101** (black BiSKIT board) and the **PROMAX OD-402B** 20 MHz oscilloscope. Patch the trainer with leads, connect it to the oscilloscope, and the CRT shows the signal.
 
-Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)** and **Lab 3 (Amplitude Demodulation)** have full guidelines: theory, the practical steps with live checks, and an oral-exam question bank. Labs 4–7 are routes without a guideline yet; the menu marks each lab with a tick or "Not implemented".
+Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)**, **Lab 3 (Amplitude Demodulation)** and **Lab 4 (Frequency Modulation)** have full guidelines: theory, the practical steps with live checks, and an oral-exam question bank. Labs 5–7 are routes without a guideline yet; the menu marks each lab with a tick or "Not implemented".
 
 ## Run it
 
@@ -112,6 +112,14 @@ Two results are stated honestly rather than to match a slogan:
 - **Amplitude of the two receivers.** Stage for stage the extra RC filter attenuates (node 5 → node 6 loses about a fifth), as the instructor explains. But node 7 comes out larger than node 4, because the Diode & RC LPF holds the carrier peaks while the Rectifier followed by the separate RC LPF averages the half-wave pulses. Photos of the real bench point the same way. The guide teaches both.
 - **Over-modulation and the Tuneable LPF.** A steep filter set just above 2 kHz removes the harmonics that over-modulation creates, so a single test tone looks clean again. The guide raises fc before over-modulating and explains why this cannot work for a real message.
 
+### Lab 4 sources and teaching method
+
+Procedure from the Experiment 4 lab sheet: VCO input grounded to map the LO and HI rest-frequency ranges (Part A), the rest frequency tuned to 10 kHz in LO (Part B), the 2 kHz sine applied (Part C). Part D, the effect of message amplitude, is the lab sheet's stated aim done with the sine instead of speech, using the BUFFER amplifier in front of the VCO; it is marked optional.
+
+Each theory step follows one pattern (`Lesson` in `components/guide/parts.tsx`): the question, the idea in plain words with a figure, the numbers, the link to the trainer, the sentence to say in the oral, and a check of understanding (`components/guide/Quiz.tsx`: multiple choice or a number, never blocking). The **FM explorer** (`lib/labs/lab4/explorer.tsx`) draws message, carrier and FM on one time axis, builds the FM by accumulating phase from f = f_rest + k·v, and reads every number off that model; it can load the student's own VCO settings from the bench. In the practical, students type the frequencies they measure on the scope and get the working back in divisions of their TIME/DIV; in Part D they record readings in a small table.
+
+Every lab's final question bank now has a **Practice oral exam** mode: one question at a time, hardest first, self-rated, with missed questions coming back. A step whose checks are not met shows **Skip** instead of Next.
+
 ### Adding a guideline for another lab
 
 1. Create `lib/labs/labN/guide.tsx` exporting a `Guide` (see `lib/guide/types.ts`): sections of steps, each with a body, an optional `why`, `highlight` (sockets and controls by id/name), `checks` (functions of the `Bench`) and question ids.
@@ -167,7 +175,7 @@ Figures come from Emona's User Manual (sample edition), specification sheet and 
 | UTILITIES | comparator (TTL out), half-wave rectifier, diode + RC detector (peak follower), RC low-pass at 2.6 kHz; both rectifying blocks lose one 0.7 V diode drop |
 | TUNEABLE LPF | 8th-order elliptic, 600 Hz – 12 kHz, gain 0–2, fc×100 clock |
 | CHANNEL MODULE | 100 kHz band-pass (6th-order Chebyshev, 24 kHz), 1.6 kHz 4th-order Butterworth low-pass (gain 0.9), adder |
-| VCO | LO 1–17 kHz, HI 60–140 kHz, input ±3 V |
+| VCO | LO 1–17 kHz, HI 60–140 kHz, input ±3 V; f = f_rest + k·v with k set by GAIN, phase accumulated (one law shared with the guides) |
 | TWIN PULSE GENERATOR | width 5–40 µs, delay 50–300 µs |
 | DUAL ANALOG SWITCH | two switches summed at OUT; sample-and-hold clocked by CONTROL 1 |
 | PCM ENCODER / DECODER | 8-bit offset binary over ±2 V, MSB first, FS on bit 0 |
@@ -197,6 +205,7 @@ These are not confirmed by the documents available and are marked `Assumption` i
 - **Trainer modules with no signal yet** (sockets can be patched, the output stays at 0 V): PHASE SHIFTER, SEQUENCE GENERATOR, DIVIDER, SERIAL TO PARALLEL, SPEECH. The reason for each is in `UNSIMULATED_MODULES`. PCM ENCODER TDM mode and PCM DECODER OUTPUT2 are also not modelled.
 - **Oscilloscope**: X-Y mode (its switch position is hidden in the photograph), TV-V / TV-H triggering, the VOLTS/DIV VARIABLE knobs (fixed at CAL), TRACE ROTATION, bandwidth limiting.
 - **Indicators on the range switches**: the white pointers on VOLTS/DIV and TIME/DIV and the index lines on the small knobs are drawn by the app so the settings can be read; the photograph underneath shows the knobs as they were when it was taken.
-- **Labs 4–7**: navigation only; no guideline yet.
+- **Labs 5–7**: navigation only; no guideline yet.
+- **Lab 4**: the free-running VCO is not locked to the message, so the FM trace on the oscilloscope overlaps from sweep to sweep, as on the real instrument; the guide's FM explorer shows one sweep. Speech and square-wave messages from the lab sheet's overview are not used (the trainer's SPEECH module is not simulated).
 - **Lab 2 and 3 guidelines**: the MATLAB parts of the lab sheets are explained but not run; there is no spectrum analyser on the bench, so spectra are shown as illustrations, not measured.
 - **Bench impedances**: modules do not load each other; each output drives its net as an ideal source. This is why the Rectifier + RC LPF path behaves as a pure average.

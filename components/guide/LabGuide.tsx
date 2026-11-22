@@ -156,6 +156,8 @@ function Panel({ guide }: { guide: Guide }) {
     );
   }
 
+  /** The step has requirements that are not met yet: Next reads "Skip". */
+  const pending = !contents && !!step.checks?.some((c) => !evaluate(c, bench).ok);
   const h = step.highlight;
   const hasTargets = !!h && (!!h.link || !!h.links?.length || !!h.unlink?.length || !!h.ports?.length || !!h.controls?.length);
   let firstOfSection = 0;
@@ -255,8 +257,15 @@ function Panel({ guide }: { guide: Guide }) {
         <span className="guide-count" aria-live="polite">
           Step {index + 1} of {steps.length}
         </span>
-        <button type="button" className="g-button g-button-primary" disabled={index === steps.length - 1} onClick={() => goTo(index + 1)}>
-          Next
+        <button
+          type="button"
+          className={`g-button ${pending ? "" : "g-button-primary"}`}
+          aria-label="Next"
+          title={pending ? "Not done yet: you can still move on" : undefined}
+          disabled={index === steps.length - 1}
+          onClick={() => goTo(index + 1)}
+        >
+          {pending ? "Skip" : "Next"}
         </button>
       </footer>
     </aside>
