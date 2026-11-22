@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LABS, labHref } from "@/lib/labs";
+import { hasGuide } from "@/lib/labs/guides";
 
-const ITEMS = [
+/** `ready`: the lab has its guideline. Undefined for the kit, which has none to wait for. */
+const ITEMS: { href: string; label: string; detail: string; ready?: boolean }[] = [
   { href: "/", label: "Kit", detail: "Free bench" },
-  ...LABS.map((lab) => ({ href: labHref(lab.id), label: `Lab ${lab.id}`, detail: lab.title })),
+  ...LABS.map((lab) => ({ href: labHref(lab.id), label: `Lab ${lab.id}`, detail: lab.title, ready: hasGuide(lab.id) })),
 ];
 
 /** Compact navigation in the top-left corner. */
@@ -62,12 +64,20 @@ export function LabMenu() {
                 href={item.href}
                 role="menuitem"
                 aria-current={selected ? "page" : undefined}
-                className={`menu-item ${selected ? "is-selected" : ""}`}
+                className={`menu-item ${selected ? "is-selected" : ""} ${item.ready === false ? "is-pending" : ""}`}
                 onClick={() => setOpen(false)}
               >
                 <span className="menu-dot" aria-hidden />
                 <span className="menu-label">{item.label}</span>
                 <span className="menu-detail">{item.detail}</span>
+                {item.ready === true && (
+                  <span className="menu-status is-ready" role="img" aria-label="Guideline ready" title="Guideline ready">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M2 5.2l2.1 2.1L8 3" />
+                    </svg>
+                  </span>
+                )}
+                {item.ready === false && <span className="menu-status">Not implemented</span>}
               </Link>
             );
           })}

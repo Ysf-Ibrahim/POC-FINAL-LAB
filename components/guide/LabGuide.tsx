@@ -314,7 +314,7 @@ export function LabGuide({ labId, title }: { labId: number; title: string }) {
           </div>
         </>
       ) : (
-        "Lab content will be added here."
+        "The guideline for this lab is not implemented yet. The bench works as usual."
       )}
     </aside>
   );
