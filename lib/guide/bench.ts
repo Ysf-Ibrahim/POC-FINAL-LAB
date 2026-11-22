@@ -3,7 +3,7 @@ import type { ControlsState } from "../controls/store";
 import { SCOPE_CHASSIS } from "../ports/promax";
 import { PORTS } from "../ports/registry";
 import { buildCircuit, runCircuit } from "../sim/engine";
-import { F_MESSAGE, MODULE_MODELS } from "../sim/modules";
+import { F_CARRIER, F_MESSAGE, MODULE_MODELS } from "../sim/modules";
 import type { ScopeStatus } from "../sim/status";
 
 /**
@@ -13,8 +13,13 @@ import type { ScopeStatus } from "../sim/status";
  * ever confirm what the simulated circuit really does.
  */
 
-/** Every oscilloscope ground node is one point: the chassis. */
-const node = (id: string) => (PORTS.get(id)?.role === "chassis" ? SCOPE_CHASSIS : id);
+/** Every trainer GND socket is one point. */
+const TRAINER_GROUND = "emona.gnd";
+/** Every oscilloscope ground node is one point (the chassis), and so is every trainer GND socket. */
+const node = (id: string) => {
+  const role = PORTS.get(id)?.role;
+  return role === "chassis" ? SCOPE_CHASSIS : role === "ground" ? TRAINER_GROUND : id;
+};
 
 export interface Nets {
   /** True when a chain of leads joins the two sockets. */
@@ -23,6 +28,8 @@ export interface Nets {
   grounded(id: string): boolean;
   /** True when at least one lead is plugged into the socket. */
   used(id: string): boolean;
+  /** Every socket on the same net as `id`, including itself. */
+  members(id: string): string[];
 }
 
 export function resolveNets(cables: readonly Cable[]): Nets {
@@ -40,11 +47,18 @@ export function resolveNets(cables: readonly Cable[]): Nets {
     if (a !== b) parent.set(a, b);
   }
   const groundRoots = new Set<string>();
-  for (const id of parent.keys()) if (PORTS.get(id)?.role === "ground") groundRoots.add(find(id));
+  if (parent.has(TRAINER_GROUND)) groundRoots.add(find(TRAINER_GROUND));
   const plugged = new Set<string>();
   for (const c of cables) {
     plugged.add(c.a);
     plugged.add(c.b);
+  }
+  const byRoot = new Map<string, string[]>();
+  for (const id of plugged) {
+    const root = find(node(id));
+    const list = byRoot.get(root);
+    if (list) list.push(id);
+    else byRoot.set(root, [id]);
   }
   return {
     linked: (a, b) => {
@@ -54,6 +68,7 @@ export function resolveNets(cables: readonly Cable[]): Nets {
     },
     grounded: (id) => PORTS.get(id)?.role === "ground" || groundRoots.has(find(node(id))),
     used: (id) => plugged.has(id),
+    members: (id) => (parent.has(node(id)) ? (byRoot.get(find(node(id))) ?? [id]) : [id]),
   };
 }
 
@@ -64,6 +79,16 @@ export interface Reading {
   mean: number;
   /** Peak-to-peak. */
   vpp: number;
+}
+
+/** A periodic signal described the way a lab report would: level, message tone, distortion and ripple. */
+export interface Tone extends Reading {
+  /** Peak-to-peak size of the component at the message frequency (2 kHz). */
+  messageVpp: number;
+  /** Harmonic distortion of the message component, 2nd to 8th harmonic, in %. NaN when there is no message. */
+  thd: number;
+  /** Peak-to-peak of what remains at the carrier frequency and above (the "ripple"). */
+  ripple: number;
 }
 
 export interface RecordOptions {
@@ -95,6 +120,10 @@ export class Bench {
   used(id: string) {
     return this.nets.used(id);
   }
+  /** Output sockets that drive the net of `id` (more than one means outputs are shorted together). */
+  drivers(id: string): string[] {
+    return this.nets.members(id).filter((m) => PORTS.get(m)?.role === "out");
+  }
   /** The oscilloscope shares a ground with the trainer. */
   get scopeGrounded() {
     return this.nets.grounded(SCOPE_CHASSIS);
@@ -123,6 +152,51 @@ export class Bench {
     });
     this.recordings.set(key, data);
     return data;
+  }
+
+  /**
+   * Analyse the signal on a socket over two cycles of the message: the size of
+   * its 2 kHz component, its harmonic distortion, and the ripple left at the
+   * carrier frequency (what remains after averaging over one carrier cycle).
+   */
+  tone(port: string): Tone {
+    const dt = 1e-7;
+    const [v] = this.record([port], { dt });
+    const r = this.reading(port, { dt });
+    const n = v.length;
+    const cycles = 2; // the default recording holds exactly two message cycles
+    const harmonic = (k: number) => {
+      let re = 0;
+      let im = 0;
+      const w = (2 * Math.PI * cycles * k) / n;
+      for (let i = 0; i < n; i++) {
+        re += v[i] * Math.cos(w * i);
+        im += v[i] * Math.sin(w * i);
+      }
+      return (2 * Math.hypot(re, im)) / n; // peak amplitude
+    };
+    const h1 = harmonic(1);
+    let hs = 0;
+    for (let k = 2; k <= 8; k++) hs += harmonic(k) ** 2;
+    const w = Math.max(1, Math.round(1 / (F_CARRIER * dt)));
+    let acc = 0;
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < n; i++) {
+      acc += v[i];
+      if (i >= w) acc -= v[i - w];
+      if (i >= w) {
+        const residue = v[i - Math.floor(w / 2)] - acc / w;
+        if (residue < lo) lo = residue;
+        if (residue > hi) hi = residue;
+      }
+    }
+    return {
+      ...r,
+      messageVpp: 2 * h1,
+      thd: h1 > 0.025 ? (100 * Math.sqrt(hs)) / h1 : NaN,
+      ripple: Number.isFinite(hi) ? hi - lo : 0,
+    };
   }
 
   reading(port: string, opts?: RecordOptions): Reading {

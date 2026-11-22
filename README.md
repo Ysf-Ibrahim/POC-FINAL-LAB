@@ -2,7 +2,7 @@
 
 An interactive bench for the Principles of Communication laboratory: the **EMONA Telecoms-Trainer 101** (black BiSKIT board) and the **PROMAX OD-402B** 20 MHz oscilloscope. Patch the trainer with leads, connect it to the oscilloscope, and the CRT shows the signal.
 
-Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)** has a full guideline: theory, the practical steps with live checks, and an oral-exam question bank. Labs 3–7 are routes without a guideline yet.
+Every lab is a route on the same bench. **Lab 2 (Amplitude Modulation)** and **Lab 3 (Amplitude Demodulation)** have full guidelines: theory, the practical steps with live checks, and an oral-exam question bank. Labs 4–7 are routes without a guideline yet; the menu marks each lab with a tick or "Not implemented".
 
 ## Run it
 
@@ -103,6 +103,15 @@ The sequence, connections and values (2 kHz 4 Vp-p message, 100 kHz 4 Vp-p carri
 
 Where the trainer differs from the simple theory, the guide says so: the Adder inverts; VDC reaches only ±2.5 V, so 4 V of DC needs the Adder's g gain; the "2 kHz" output is 2.083 kHz. The multiplier is modelled with k = 1 and no output clipping (see Assumptions), so voltages at its output may be larger than on a real board; the modulation index, which is a ratio, is not affected.
 
+### Lab 3 sources
+
+Procedure, block diagrams (Figures 2, 4, 5) and node numbers 1–7 follow the Experiment 3 lab sheet; the transmitter checks are shared with Lab 2 (`lib/labs/am.ts`). Each node step asks the student to move the CH2 lead, and refuses to tick while two outputs are joined (for example CH2 still on the previous node, or the RC LPF fed by both the Rectifier and the Diode & RC LPF), and while the Rectifier feeds the Diode & RC LPF (two diodes in series). Checks report the measured 2 kHz message, carrier ripple, distortion and DC level at each node.
+
+Two results are stated honestly rather than to match a slogan:
+
+- **Amplitude of the two receivers.** Stage for stage the extra RC filter attenuates (node 5 → node 6 loses about a fifth), as the instructor explains. But node 7 comes out larger than node 4, because the Diode & RC LPF holds the carrier peaks while the Rectifier followed by the separate RC LPF averages the half-wave pulses. Photos of the real bench point the same way. The guide teaches both.
+- **Over-modulation and the Tuneable LPF.** A steep filter set just above 2 kHz removes the harmonics that over-modulation creates, so a single test tone looks clean again. The guide raises fc before over-modulating and explains why this cannot work for a real message.
+
 ### Adding a guideline for another lab
 
 1. Create `lib/labs/labN/guide.tsx` exporting a `Guide` (see `lib/guide/types.ts`): sections of steps, each with a body, an optional `why`, `highlight` (sockets and controls by id/name), `checks` (functions of the `Bench`) and question ids.
@@ -155,7 +164,7 @@ Figures come from Emona's User Manual (sample edition), specification sheet and 
 | ADDER | −(G·A + g·B), gains 0–2, inverting |
 | MULTIPLIERs | k·X·Y with k = 1 |
 | BUFFER | gain 0–10 |
-| UTILITIES | comparator (TTL out), half-wave rectifier, diode + RC detector, RC low-pass at 2.6 kHz |
+| UTILITIES | comparator (TTL out), half-wave rectifier, diode + RC detector (peak follower), RC low-pass at 2.6 kHz; both rectifying blocks lose one 0.7 V diode drop |
 | TUNEABLE LPF | 8th-order elliptic, 600 Hz – 12 kHz, gain 0–2, fc×100 clock |
 | CHANNEL MODULE | 100 kHz band-pass (6th-order Chebyshev, 24 kHz), 1.6 kHz 4th-order Butterworth low-pass (gain 0.9), adder |
 | VCO | LO 1–17 kHz, HI 60–140 kHz, input ±3 V |
@@ -171,7 +180,8 @@ These are not confirmed by the documents available and are marked `Assumption` i
 
 - Phase relationship between the MASTER SIGNALS outputs (all rising together at t = 0).
 - MULTIPLIER AC inputs block DC below about 200 Hz.
-- Diode detector: ideal diode, same RC as the RC LPF.
+- Rectifier and Diode & RC LPF: a silicon diode with the simplified 0.7 V forward drop used in the lab explanation (whether the trainer's RECTIFIER is a plain diode or a precision rectifier is not published); the diode detector uses the same RC as the RC LPF.
+- TUNEABLE LPF: an ideal 8th-order elliptic filter (no switched-capacitor clock feed-through), so the 100 kHz ripple is removed completely at both receiver outputs.
 - TUNEABLE LPF: logarithmic fc trimmer.
 - VCO: at full GAIN, ±3 V sweeps the whole range.
 - Sample-and-hold samples on the rising edge of CONTROL 1.
@@ -187,5 +197,6 @@ These are not confirmed by the documents available and are marked `Assumption` i
 - **Trainer modules with no signal yet** (sockets can be patched, the output stays at 0 V): PHASE SHIFTER, SEQUENCE GENERATOR, DIVIDER, SERIAL TO PARALLEL, SPEECH. The reason for each is in `UNSIMULATED_MODULES`. PCM ENCODER TDM mode and PCM DECODER OUTPUT2 are also not modelled.
 - **Oscilloscope**: X-Y mode (its switch position is hidden in the photograph), TV-V / TV-H triggering, the VOLTS/DIV VARIABLE knobs (fixed at CAL), TRACE ROTATION, bandwidth limiting.
 - **Indicators on the range switches**: the white pointers on VOLTS/DIV and TIME/DIV and the index lines on the small knobs are drawn by the app so the settings can be read; the photograph underneath shows the knobs as they were when it was taken.
-- **Labs 3–7**: navigation only; no guideline yet.
-- **Lab 2 guideline**: the MATLAB part of the lab sheet (question 5) is explained but not run; there is no spectrum analyser on the bench, so the sidebands are shown as illustrations, not measured.
+- **Labs 4–7**: navigation only; no guideline yet.
+- **Lab 2 and 3 guidelines**: the MATLAB parts of the lab sheets are explained but not run; there is no spectrum analyser on the bench, so spectra are shown as illustrations, not measured.
+- **Bench impedances**: modules do not load each other; each output drives its net as an ideal source. This is why the Rectifier + RC LPF path behaves as a pure average.

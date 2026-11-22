@@ -31,6 +31,10 @@ export interface Check {
 export interface Highlight {
   /** Two sockets to join with a lead. */
   link?: [string, string];
+  /** Several pairs of sockets to join, for a step that makes more than one connection. */
+  links?: [string, string][];
+  /** Pairs of sockets that must stop being connected: marked in red while they still are. */
+  unlink?: [string, string][];
   /** Other sockets to draw attention to. */
   ports?: string[];
   /** Knobs and switches, by their accessible name (e.g. "ADDER G", "MODE"). */

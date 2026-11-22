@@ -24,13 +24,23 @@ export function GuideHighlights() {
   const cables = useStore(cableStore, (s) => s.cables);
   const layer = useRef<SVGSVGElement>(null);
 
-  const linkPorts: string[] = spec.link ?? [];
-  const ids = [...new Set([...linkPorts, ...(spec.ports ?? [])])].filter((id) => PORTS.has(id));
-  const linked = spec.link ? resolveNets(cables).linked(spec.link[0], spec.link[1]) : false;
-  const key = ids.join("|");
-  const link = spec.link && PORTS.has(spec.link[0]) && PORTS.has(spec.link[1]) ? spec.link : null;
+  const valid = (p: [string, string]) => PORTS.has(p[0]) && PORTS.has(p[1]);
+  const pairs = [...(spec.link ? [spec.link] : []), ...(spec.links ?? [])].filter(valid);
+  const nets = resolveNets(cables);
+  const joined = pairs.map((p) => nets.linked(p[0], p[1]));
+  // Leads still to remove: only while the two sockets are still connected.
+  const cuts = (spec.unlink ?? []).filter(valid).filter((p) => nets.linked(p[0], p[1]));
+  const cutPorts = new Set(cuts.flat());
+  const ids = [...new Set([...pairs.flat(), ...(spec.ports ?? [])])].filter((id) => PORTS.has(id) && !cutPorts.has(id));
+  /** A socket is done when every connection it takes part in is made. */
+  const done = (id: string) => {
+    const mine = pairs.map((p, i) => (p.includes(id) ? joined[i] : null)).filter((x) => x !== null);
+    return mine.length > 0 && mine.every(Boolean);
+  };
+  const hints = pairs.filter((_, i) => !joined[i]);
+  const key = [...ids, "|", ...cutPorts, "|", ...hints.flat()].join(",");
 
-  // Sockets: follow the instruments without re-rendering.
+  // Sockets and hints follow the instruments without re-rendering.
   useEffect(() => {
     const svg = layer.current;
     if (!svg) return;
@@ -41,14 +51,15 @@ export function GuideHighlights() {
         const w = portWorld(port);
         g.setAttribute("transform", `translate(${w.x.toFixed(1)} ${w.y.toFixed(1)})`);
       });
-      const hint = svg.querySelector<SVGPathElement>("[data-hint]");
-      if (hint && link) hint.setAttribute("d", cablePath(portWorld(PORTS.get(link[0])!), portWorld(PORTS.get(link[1])!)));
+      svg.querySelectorAll<SVGPathElement>("[data-hint]").forEach((path) => {
+        const [a, b] = path.dataset.hint!.split(" ").map((id) => PORTS.get(id)!);
+        path.setAttribute("d", cablePath(portWorld(a), portWorld(b)));
+      });
     };
     place();
     const offs = [on("device", place), on("layout", place)];
     return () => offs.forEach((off) => off());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, link?.[0], link?.[1], linked]);
+  }, [key]);
 
   // Controls live inside the instruments: mark the elements themselves.
   const controls = (spec.controls ?? []).join("|");
@@ -66,15 +77,29 @@ export function GuideHighlights() {
 
   return (
     <svg ref={layer} className="guide-layer" width={1} height={1} aria-hidden>
-      {link && !linked && <path data-hint className="guide-hint" fill="none" />}
+      {hints.map((p) => (
+        <path key={p.join(" ")} data-hint={p.join(" ")} className="guide-hint" fill="none" />
+      ))}
+      {cuts.map((p) => (
+        <path key={`cut ${p.join(" ")}`} data-hint={p.join(" ")} className="guide-hint is-cut" fill="none" />
+      ))}
       {ids.map((id) => {
         const r = portRadius(PORTS.get(id)!) * 1.75 + 3;
-        const done = linked && linkPorts.includes(id);
+        const isDone = done(id);
         return (
-          <g key={id} data-port={id} className={`guide-ring ${done ? "is-done" : ""}`}>
+          <g key={id} data-port={id} className={`guide-ring ${isDone ? "is-done" : ""}`}>
             <circle className="guide-ring-halo" r={r} />
             <circle className="guide-ring-line" r={r} />
-            {!done && <circle className="guide-ring-pulse" r={r} />}
+            {!isDone && <circle className="guide-ring-pulse" r={r} />}
+          </g>
+        );
+      })}
+      {[...cutPorts].map((id) => {
+        const r = portRadius(PORTS.get(id)!) * 1.75 + 3;
+        return (
+          <g key={`cut ${id}`} data-port={id} className="guide-ring is-cut">
+            <circle className="guide-ring-halo" r={r} />
+            <circle className="guide-ring-line" r={r} />
           </g>
         );
       })}

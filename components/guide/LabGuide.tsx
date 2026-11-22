@@ -35,7 +35,7 @@ function showOnBench(h: Highlight) {
     maxX = Math.max(maxX, x + r);
     maxY = Math.max(maxY, y + r);
   };
-  for (const id of [...(h.link ?? []), ...(h.ports ?? [])]) {
+  for (const id of [...(h.link ?? []), ...(h.links ?? []).flat(), ...(h.unlink ?? []).flat(), ...(h.ports ?? [])]) {
     const port = PORTS.get(id);
     if (!port) continue;
     const w = portWorld(port);
@@ -156,7 +156,8 @@ function Panel({ guide }: { guide: Guide }) {
     );
   }
 
-  const hasTargets = !!step.highlight && (!!step.highlight.link || !!step.highlight.ports?.length || !!step.highlight.controls?.length);
+  const h = step.highlight;
+  const hasTargets = !!h && (!!h.link || !!h.links?.length || !!h.unlink?.length || !!h.ports?.length || !!h.controls?.length);
   let firstOfSection = 0;
 
   return (

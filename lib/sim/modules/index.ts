@@ -228,13 +228,22 @@ const comparator: ModuleModel = {
   },
 };
 
-/** RECTIFIER: half-wave, passes the positive half of the input. */
+/**
+ * Forward drop of the rectifying diodes.
+ * Assumption: a silicon diode with the simplified 0.7 V drop used in the lab
+ * explanation. The trainer's rectifier circuit is not published, so whether it
+ * is a plain diode or a precision rectifier is not known.
+ */
+export const DIODE_DROP = 0.7;
+
+/** RECTIFIER: half-wave, passes the positive half of the input, less one diode drop. */
 const rectifier: ModuleModel = {
   id: "rectifier",
   inputs: ["rectifier.in"],
   outputs: ["rectifier.out"],
   create: () => (inp, out) => {
-    out[0] = inp[0] > 0 ? inp[0] : 0;
+    const v = inp[0] - DIODE_DROP;
+    out[0] = v > 0 ? v : 0;
   },
 };
 
@@ -258,7 +267,7 @@ const rcLpf: ModuleModel = {
 /**
  * DIODE & RC LPF: the capacitor charges quickly through the diode and
  * discharges through the resistor.
- * Assumptions: ideal diode, and the same RC as the stand-alone RC LPF.
+ * Assumptions: one diode drop (DIODE_DROP), and the same RC as the stand-alone RC LPF.
  */
 const diodeLpf: ModuleModel = {
   id: "diode",
@@ -271,7 +280,8 @@ const diodeLpf: ModuleModel = {
     let y = 0;
     return (inp, out) => {
       y *= discharge;
-      if (inp[0] > y) y += charge * (inp[0] - y);
+      const v = inp[0] - DIODE_DROP;
+      if (v > y) y += charge * (v - y);
       out[0] = y;
     };
   },
